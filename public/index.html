@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chat with memory</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234f46e5'/%3E%3Ccircle cx='32' cy='32' r='12' fill='white'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <aside id="sidebar">
+      <button id="new-chat" type="button">+ New chat</button>
+      <a id="memories-link" href="/memories.html">View memories</a>
+      <nav id="sessions" aria-label="Chats"></nav>
+      <p class="hint" id="seed-hint" hidden>No chats yet. Run <code>npm run seed</code>, restart, then open <a href="/?seed=1">/?seed=1</a> for a demo history.</p>
+    </aside>
+    <main>
+      <div id="messages">
+        <section id="empty" class="empty">
+          <h1>Ask me anything</h1>
+          <p>I search the web, and I remember our past chats by date, so you can ask what changed since.</p>
+          <div class="examples">
+            <button type="button">On Monday we shortlisted 5 CRM tools for a 20-person sales team. Has any of them changed pricing or shipped something big since?</button>
+            <button type="button">Last Tuesday I asked you about Postgres hosting. Has any pricing changed since then?</button>
+            <button type="button">What did we talk about last time?</button>
+          </div>
+        </section>
+      </div>
+      <form id="composer">
+        <textarea id="input" rows="1" placeholder="Message…" autocomplete="off"></textarea>
+        <button id="send" type="submit">Send</button>
+      </form>
+    </main>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
