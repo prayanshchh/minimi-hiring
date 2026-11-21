@@ -4,7 +4,7 @@
  */
 export type AgentEvents = {
   session: { sessionId: string; title: string; isNew: boolean };
-  plan: { questions: Array<{ queryId: string; summary: string; needsMemory: boolean }>; needsWeb: boolean };
+  plan: { questions: Array<{ queryId: string; summary: string; needsMemory: boolean }> };
   "memory.search": { queryId: string; searched: string };
   "memory.found": { queryId: string; memories: number; sessions: Array<{ title: string; date: string }>; all?: boolean };
   "memory.none_on_date": { queryId: string; date: string; nearestElsewhere?: { title: string; date: string } };

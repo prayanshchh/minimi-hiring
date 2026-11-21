@@ -63,7 +63,7 @@ for (const c of CASES.filter((c) => !only || c.name === only)) {
   const message = c.message(seed.timeline);
   const planned = await plan({ message, recent: [], timezone, now });
   const results = await retrieve(deps, { userId: seed.userId, currentSessionId: null, timezone, now, questions: planned.questions });
-  const prompt = buildPrompt({ message, timezone, now, needsWeb: planned.plan.needsWeb, questions: planned.questions, results, currentChat: [] });
+  const prompt = buildPrompt({ message, timezone, now, questions: planned.questions, results, currentChat: [] });
 
   const checks = check(c.expect, results);
   const ok = checks.every((x) => x.ok);

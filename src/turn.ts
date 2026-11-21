@@ -49,7 +49,7 @@ export async function runTurn(deps: TurnDeps, input: TurnInput, emit: Emit): Pro
     const planned = await log.time("planner", () => plan({ message: input.message, recent: currentChat, timezone: input.timezone, now }), (p) =>
       `${p.questions.length} question(s)${p.fallback ? " (fallback plan)" : ""}: ${p.questions.map((q) => `${q.queryId}[mem=${q.needsMemory} ${q.window.mode} ${q.dateSide}${q.dateOnly ? " date-only" : ""}] "${q.query}"`).join("; ")}`,
     );
-    emit("plan", { needsWeb: planned.plan.needsWeb, questions: planned.questions.map((q) => ({ queryId: q.queryId, summary: q.query, needsMemory: q.needsMemory })) });
+    emit("plan", { questions: planned.questions.map((q) => ({ queryId: q.queryId, summary: q.query, needsMemory: q.needsMemory })) });
 
     // 3. Retriever: deterministic hybrid search over past sessions (the current one is excluded).
     step = "memory";
@@ -63,7 +63,7 @@ export async function runTurn(deps: TurnDeps, input: TurnInput, emit: Emit): Pro
     for (const r of results) emitRetrieval(emit, r);
 
     // 4. Prompt: the current chat in full + the matching memories; past chats only on request.
-    const prompt = buildPrompt({ message: input.message, timezone: input.timezone, now, needsWeb: planned.plan.needsWeb, questions: planned.questions, results, currentChat });
+    const prompt = buildPrompt({ message: input.message, timezone: input.timezone, now, questions: planned.questions, results, currentChat });
     log.info(`prompt     memories=${prompt.stats.memories} chat≈${prompt.stats.chatTokens}t`);
 
     // 5. Answerer: reasons, reads past chats or saved web results if it needs them, searches the web, streams.

@@ -14,7 +14,7 @@ type Row = {
   n: number; at: string; text: string; answer: string; error?: string; searches: string[]; kind?: "history" | "test";
   history?: Array<{ what: "chats" | "web"; items: number }>;
   expect?: Pick<Msg, "must" | "ok" | "avoid">; look?: string;
-  plan?: { needsWeb: boolean; questions: Array<{ needsMemory: boolean; summary: string }> };
+  plan?: { questions: Array<{ needsMemory: boolean; summary: string }> };
   memory: Array<{ event: string; data: { sessions?: Array<{ title: string; date: string }>; date?: string; nearestElsewhere?: { title: string; date: string } } }>;
   ms: { firstWord?: number; done?: number; memoryWriter?: number };
   memories: Array<{ kind: string; topic: string; text: string }>;

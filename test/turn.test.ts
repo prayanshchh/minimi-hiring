@@ -27,7 +27,7 @@ const textChunks = (text: string) => [
   { type: "text-end" as const, id: "t" },
 ];
 
-const plan = { needsWeb: true, questions: [{ queryId: "q1", needsMemory: true, query: "Postgres hosting pricing", keywords: ["Postgres", "hosting", "pricing"], timePhrase: null, timeRefersTo: null, dateSide: "user", wantsCurrent: true, allMemories: false }] };
+const plan = { questions: [{ queryId: "q1", needsMemory: true, query: "Postgres hosting pricing", keywords: ["Postgres", "hosting", "pricing"], timePhrase: null, timeRefersTo: null, dateSide: "user", wantsCurrent: true, allMemories: false }] };
 // One memory quotes the user's message; the other was taken from somewhere else and must be dropped.
 const memories = {
   memories: [

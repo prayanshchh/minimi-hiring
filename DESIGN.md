@@ -40,11 +40,11 @@ Each model can be swapped for another Claude model in `.env`, and a backup Claud
 - pulls out the time phrase ("last Tuesday");
 - notes whose words are being asked about ("what did *I* ask" or "what did *you* tell me").
 
-It also decides whether a question is broad: about you yourself ("what do you know about me?"), a pick based on your tastes ("what should I order tonight?"), or a subject that could mean more than one thing ("what's on the shortlist?" when there are two). A broad question gets every memory, with no search and no filter, because no single topic would cover it. And it guesses whether the web will be needed. Greetings, thanks and small talk need neither past chats nor the web, so a simple "hi" goes straight to the answer. A question that depends on the user's own tastes or situation ("what should I order for me?") does count as needing past chats, even when it doesn't mention one: the user may have said what they like before.
+It also decides whether a question is broad: about you yourself ("what do you know about me?"), a pick based on your tastes ("what should I order tonight?"), or a subject that could mean more than one thing ("what's on the shortlist?" when there are two). A broad question gets every memory, with no search and no filter, because no single topic would cover it. Greetings, thanks and small talk need no past chats, so a simple "hi" skips the search. A question that depends on the user's own tastes or situation ("what should I order for me?") does count as needing past chats, even when it doesn't mention one: the user may have said what they like before.
 
-The model never works out dates itself. Code turns the time phrase into an exact window on the user's own calendar: "last Tuesday" becomes Tue 17 Nov, from midnight to midnight in their timezone. "Around Friday" is softer: days near Friday rank higher, but other days still count. If the model call fails, the whole message becomes one question, so the turn still goes ahead.
+We turn the time phrase into an exact window on the user's own calendar: "last Tuesday" becomes Tue 17 Nov, from midnight to midnight in their timezone. "Around Friday" is softer: days near Friday rank higher, but other days still count. If the model call fails, the whole message becomes one question, so the turn still goes ahead.
 
-**Output:** the questions, each with a search query and a date window, go to the **Retriever**. The web guess goes to the **Answerer** as a hint.
+**Output:** the questions, each with a search query and a date window, go to the **Retriever**. Whether to search the web is left to the **Answerer**, which sees the memories and is the stronger model.
 
 ### Retriever
 [`src/retriever.ts`](src/retriever.ts)

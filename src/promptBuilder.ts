@@ -35,7 +35,6 @@ export type PromptInput = {
   message: string;
   timezone: string;
   now: Date;
-  needsWeb: boolean;
   questions: ResolvedQuestion[];
   results: RetrievalResult[];
   currentChat: Exchange[];
@@ -61,7 +60,6 @@ export function buildPrompt(input: PromptInput): AnswerPrompt {
     `Now: ${local(input.now, input.timezone).toFormat("cccc d LLLL yyyy, HH:mm")} (${input.timezone})`,
     "History lookup for this message:",
     ...input.questions.map((q) => `- ${statusLine(q, input.results.find((r) => r.queryId === q.queryId), input)}`),
-    `Planner's guess: web search ${input.needsWeb ? "needed" : "probably not needed"}.`,
     "</turn_context>",
     "",
     input.message,

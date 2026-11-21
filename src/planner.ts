@@ -24,7 +24,7 @@ const QuestionSchema = z.object({
   /** A broad question about the user ("what do you know about me?", "pick a film for me"): send every memory, unfiltered. */
   allMemories: z.boolean(),
 });
-const PlanSchema = z.object({ needsWeb: z.boolean(), questions: z.array(QuestionSchema) });
+const PlanSchema = z.object({ questions: z.array(QuestionSchema) });
 
 export type PlannedQuestion = z.infer<typeof QuestionSchema>;
 export type Plan = z.infer<typeof PlanSchema>;
@@ -89,7 +89,6 @@ export function resolveQuestion(q: PlannedQuestion, rawMessage: string, timezone
 /** If the Planner fails twice: one question = the raw message, answered with every memory (the safest guess). */
 function fallbackPlan(message: string): Plan {
   return {
-    needsWeb: true,
     questions: [{ queryId: "q1", needsMemory: true, query: message, keywords: message.split(/\W+/).filter((w) => w.length > 3).slice(0, 6), timePhrase: null, timeRefersTo: null, dateSide: "either", wantsCurrent: false, allMemories: true }],
   };
 }

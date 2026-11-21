@@ -18,7 +18,7 @@ const found = (memories: RetrievedMemory[], extra: Partial<RetrievalResult> = {}
   sessions: [{ sessionId: uuid(1), title: "CRM", date: "Mon 16 Nov", score: 1, matches: memories.map((m) => ({ exchangeId: m.exchangeId, matchedSide: "both" as const, at: m.at })) }],
   ...extra,
 });
-const base = { message: "What's on our CRM shortlist now?", timezone: TZ, now: NOW, needsWeb: false, currentChat: [] as Exchange[] };
+const base = { message: "What's on our CRM shortlist now?", timezone: TZ, now: NOW, currentChat: [] as Exchange[] };
 
 const monday = exchange(1, "We'll shortlist these 5: HubSpot, Pipedrive, Close, Zoho and Freshsales", "SECRET-REPLY-MONDAY Great, five CRMs.", at("2026-11-16T14:05"));
 const wednesday = exchange(2, "Drop Close and add Salesforce Starter", "SECRET-REPLY-WEDNESDAY Done.", at("2026-11-18T11:00"));
