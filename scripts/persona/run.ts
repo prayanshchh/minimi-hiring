@@ -15,7 +15,7 @@ import { dataset, TIMEZONE, type Msg } from "./dataset";
  * Memory Writer), each history message at its own past date, then the test chats now.
  * Writes everything to <dir>/run.json, with each message's expectations and its Anthropic usage.
  * Uses its own data folder, never ./data. Re-running starts from an empty folder.
- *   npx tsx scripts/persona/run.ts [--set=riya|hard] [--dir=./data-persona]
+ *   npx tsx scripts/persona/run.ts [--set=riya|hard] [--dir=./data-persona] [--tests-at=2026-11-21T17:20]
  */
 assertKeys({ web: true });
 const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
@@ -164,9 +164,13 @@ for (const [i, chat] of chats.entries()) {
     session = await send({ n: ++n, chat: i + 1, kind: "history", text, expect }, session, start.plus({ minutes: 3 * j }));
   }
 }
+// --tests-at=2026-11-21T17:20 asks the tests at a fixed time instead of now, so "this morning" or
+// "last Tuesday" mean the same as in an earlier run and the two runs can be compared.
+const testsAt = arg("tests-at");
 for (const [i, test] of tests.entries()) {
-  const session = await send({ n: ++n, chat: chats.length + i + 1, kind: "test", text: test.text, look: test.look }, null);
-  if (test.followUp) await send({ n: ++n, chat: chats.length + i + 1, kind: "test", text: test.followUp.text, look: test.followUp.look }, session);
+  const at = testsAt ? DateTime.fromISO(testsAt, { zone: TIMEZONE }).plus({ minutes: 2 * i }) : undefined;
+  const session = await send({ n: ++n, chat: chats.length + i + 1, kind: "test", text: test.text, look: test.look }, null, at);
+  if (test.followUp) await send({ n: ++n, chat: chats.length + i + 1, kind: "test", text: test.followUp.text, look: test.followUp.look }, session, at?.plus({ minutes: 1 }));
 }
 
 await new Promise((r) => setTimeout(r, 2_000)); // let the last usage copies finish reading

@@ -16,7 +16,7 @@ npm install
 npm run dev              # http://localhost:3000
 ```
 
-There's nothing else to set up: the database is PGlite (Postgres in-process), stored in `./data`, and search vectors come from EmbeddingGemma running in-process. The first message downloads that model once (about 310 MB, a couple of minutes); after that it loads in under a second.
+There's nothing else to set up: the database is PGlite (Postgres in-process), stored in `./data`, and search vectors come from EmbeddingGemma running in-process. The first `npm run dev` downloads that model once (about 315 MB, a couple of minutes, with a progress line) before the server starts, so your first message doesn't wait for it; after that it loads in under a second.
 
 **Cost:** answers run on Claude Sonnet 5.5 ($2 per million input tokens, $10 per million output tokens); planning and memory writing run on Claude Haiku 5.5, Anthropic's small, cheap model ($0.10 / $0.50). A message makes 2 small-model calls and 1–5 answering calls, which comes to a few cents, almost all of it the answer: the Answerer sees only the matching memories and the current chat, and opens past chats only when it needs them. Embeddings are free and local.
 

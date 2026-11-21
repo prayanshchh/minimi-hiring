@@ -18,6 +18,16 @@ assertKeys({ web: true });
 const release = acquireLock(env.DATA_DIR, "npm run dev");
 const db = await openDb(env.DATA_DIR);
 const embedder = createEmbedder();
+// Ready the embedding model before serving. On the first start this is the ~315 MB download, with
+// a progress line, so the first message doesn't wait for it.
+try {
+  await embedder.prepare();
+} catch (err) {
+  console.error(`\nCould not load the embedding model ${env.EMBEDDING_MODEL}: ${(err as Error).message}\nCheck your internet connection, then run npm run dev again.\n`);
+  await db.close().catch(() => {});
+  release();
+  process.exit(1);
+}
 const memory = new MemoryQueue({ db, embedder });
 const deps: TurnDeps = { db, embedder, memory };
 

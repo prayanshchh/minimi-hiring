@@ -16,6 +16,7 @@ export const at = (iso: string) => DateTime.fromISO(iso, { zone: TZ }).toJSDate(
 export const fakeEmbedder: Embedder = {
   name: "fake",
   minSimilarity: 0.35,
+  prepare: async () => {},
   embed: async (texts) =>
   texts.map((t) => {
     const v = new Array<number>(config.EMBEDDING_DIMENSIONS).fill(0);

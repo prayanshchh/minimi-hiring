@@ -4,7 +4,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { embedMany, type generateText, type LanguageModel, type wrapLanguageModel } from "ai";
 import { config } from "./config";
 import { env } from "./env";
-import { embedLocally } from "./localEmbedder";
+import { embedLocally, prepareLocally } from "./localEmbedder";
 
 /**
  * Model wiring. Every model is named "provider:model-id" in .env, so swapping provider is a config
@@ -174,6 +174,8 @@ export type Embedder = {
   embed(texts: string[], kind: EmbedKind): Promise<number[][]>;
   /** Relevance floor on this model's cosine scale: scales differ a lot between embedding models. */
   minSimilarity: number;
+  /** Gets the model ready before the first message: a local model downloads (first start only) and loads. */
+  prepare(): Promise<void>;
 };
 
 /**
@@ -193,6 +195,9 @@ export function createEmbedder(): Embedder {
   return {
     name: spec,
     minSimilarity: config.VECTOR_MIN_SIMILARITY[provider],
+    async prepare() {
+      if (provider === "local") await prepareLocally(id);
+    },
     async embed(texts, kind) {
       const missing = [...new Set(texts.filter((t) => kind === "document" || !cache.has(t)))];
       const fresh = new Map<string, number[]>();
