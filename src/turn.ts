@@ -88,7 +88,11 @@ export async function runTurn(deps: TurnDeps, input: TurnInput, emit: Emit): Pro
 }
 
 function emitRetrieval(emit: Emit, r: RetrievalResult) {
-  if (r.status === "found") emit("memory.found", { queryId: r.queryId, memories: r.memories.length, sessions: r.sessions.map((s) => ({ title: s.title, date: s.date })), all: r.all });
+  // Only chats that handed over memories are shown: a match without memories hands over nothing.
+  const chats = new Set(r.memories.map((m) => m.sessionId));
+  if (r.status === "found" && r.memories.length) {
+    emit("memory.found", { queryId: r.queryId, memories: r.memories.length, sessions: r.sessions.filter((s) => chats.has(s.sessionId)).map((s) => ({ title: s.title, date: s.date })), all: r.all });
+  }
   else if (r.status === "none_on_date") emit("memory.none_on_date", { queryId: r.queryId, date: r.searched, nearestElsewhere: r.nearestElsewhere && { title: r.nearestElsewhere.title, date: r.nearestElsewhere.date } });
   else emit("memory.none", { queryId: r.queryId, searched: r.searched });
 }

@@ -36,14 +36,23 @@ describe("buildPrompt", () => {
     expect(p.stats.memories).toBe(2);
   });
 
-  it("lets the tools resolve every memory id, and names matched messages that have no memory", () => {
-    const bare = exchange(3, "Hmm, let me think", "Sure.", at("2026-11-14T10:03"));
+  it("lets the tools open only what memories point to; a matched message with no memory hands over nothing", () => {
+    const bare = exchange(3, "Hmm, let me think", "Sure.", at("2026-11-14T10:03"), 7);
     const r = found([mMon]);
-    r.sessions[0]!.matches.push({ exchangeId: bare.id, matchedSide: "both", at: bare.userSentAt });
+    r.sessions.push({ sessionId: bare.sessionId, title: "Offsite", date: "Sat 14 Nov", score: 1, matches: [{ exchangeId: bare.id, matchedSide: "both", at: bare.userSentAt }] });
     const p = buildPrompt({ ...base, questions: [question({ query: "CRM shortlist" })], results: [r] });
     expect(p.pointers.get(mMon.ref)).toEqual({ exchangeId: monday.id, sessionId: monday.sessionId, hasWeb: true });
-    expect(p.pointers.has(exRef(bare.id))).toBe(true);
-    expect(p.finalUserMessage).toContain(`Matching messages with no memory saved (read them with read_past_chats): ${exRef(bare.id)}`);
+    expect([...p.pointers.keys()]).toEqual([mMon.ref]);
+    expect(p.finalUserMessage).not.toContain(exRef(bare.id));
+    expect(p.finalUserMessage).toContain(`1 memory from 1 chat (Mon 16 Nov): ${mMon.ref}`); // the memory-less chat isn't counted
+  });
+
+  it("matches that yield no memories at all are reported as no matching memories", () => {
+    const r = found([]);
+    r.sessions[0]!.matches.push({ exchangeId: monday.id, matchedSide: "both", at: monday.userSentAt });
+    const p = buildPrompt({ ...base, questions: [question({ query: "CRM shortlist" })], results: [r] });
+    expect(p.finalUserMessage).toContain("q1 (CRM shortlist): no matching memories (searched all history).");
+    expect(p.pointers.size).toBe(0);
   });
 
   it("notes name the memory ids per question; date questions say only these count", () => {

@@ -109,9 +109,9 @@ function withCacheMarker(chat: ModelMessage[]): ModelMessage[] {
 // ── History tools ──────────────────────────────────────────────────────────
 
 /**
- * The past, on demand. Both take the ids shown in <memories> (or the "ex_…" ids of matched messages
- * that have no memory). They read only what this turn's lookup pointed at, so the model can't wander
- * into other users' data, and every exchange they return becomes quotable.
+ * The past, on demand. Both take only the memory ids shown in <memories>, and open only the messages
+ * and chats those memories came from, so the model can't wander into other chats or other users'
+ * data. Every exchange they return becomes quotable.
  */
 function historyTools(input: { db: DB; prompt: AnswerPrompt; timezone: string; now: Date; emit: Emit }) {
   const { db, prompt, timezone: tz, now, emit } = input;

@@ -16,7 +16,7 @@ import { dayTimeLabel, local } from "./time";
 
 export type QuoteSource = { user: string; assistant: string; userAt: string; assistantAt: string };
 
-/** What the tools can resolve: memory refs ("m_…") and matched exchange refs ("ex_…"). */
+/** What the history tools can resolve: a memory ref ("m_…"), to the message and chat it came from. */
 export type Pointer = { exchangeId: string; sessionId: string; hasWeb: boolean };
 
 export type AnswerPrompt = {
@@ -51,11 +51,9 @@ export function buildPrompt(input: PromptInput): AnswerPrompt {
   for (const r of input.results) for (const m of r.memories) if (!memories.has(m.ref)) memories.set(m.ref, m);
   const list = [...memories.values()].sort((a, b) => a.at.getTime() - b.at.getTime() || a.id.localeCompare(b.id));
 
+  // Only memories open chats: a matched message with no memory hands over nothing.
   const pointers = new Map<string, Pointer>();
   for (const m of list) pointers.set(m.ref, { exchangeId: m.exchangeId, sessionId: m.sessionId, hasWeb: m.hasWeb });
-  for (const r of input.results) {
-    for (const s of r.sessions) for (const x of s.matches) if (!pointers.has(exRef(x.exchangeId))) pointers.set(exRef(x.exchangeId), { exchangeId: x.exchangeId, sessionId: s.sessionId, hasWeb: false });
-  }
 
   const finalUserMessage = [
     list.length ? memoriesBlock(list, input) : null,
@@ -103,12 +101,13 @@ function statusLine(q: ResolvedQuestion, r: RetrievalResult | undefined, input: 
   if (!q.needsMemory || !r) return `${head}: no history lookup needed; use this chat and the web.`;
   if (r.all) return `${head}: a broad question, so <memories> holds every memory from all earlier chats (${r.memories.length}), unfiltered.`;
   if (r.status === "found") {
-    const days = [...new Set(r.sessions.map((s) => s.date))].join(", ");
-    const refs = r.memories.filter((m) => !m.otherDay).map((m) => m.ref);
-    const unremembered = r.sessions.flatMap((s) => s.matches.map((x) => x.exchangeId)).filter((id) => !r.memories.some((m) => m.exchangeId === id));
+    // Only chats that contributed memories count: matches without a memory hand over nothing.
+    const mine = r.memories.filter((m) => !m.otherDay);
+    if (!mine.length) return `${head}: no matching memories (searched ${r.searched}).`;
+    const chats = new Set(mine.map((m) => m.sessionId));
+    const days = [...new Set(r.sessions.filter((s) => chats.has(s.sessionId)).map((s) => s.date))].join(", ");
     const onlyThese = r.clip ? " Only these are from the time asked about." : "";
-    const gap = unremembered.length ? ` Matching messages with no memory saved (read them with read_past_chats): ${unremembered.map(exRef).join(", ")}.` : "";
-    return `${head}: ${refs.length} memor${refs.length === 1 ? "y" : "ies"} from ${r.sessions.length} chat${r.sessions.length === 1 ? "" : "s"} (${days}): ${refs.join(", ") || "none"}. Searched: ${r.searched}.${onlyThese}${gap}`;
+    return `${head}: ${mine.length} memor${mine.length === 1 ? "y" : "ies"} from ${chats.size} chat${chats.size === 1 ? "" : "s"} (${days}): ${mine.map((m) => m.ref).join(", ")}. Searched: ${r.searched}.${onlyThese}`;
   }
   if (r.status === "none_on_date") {
     const near = r.nearestElsewhere

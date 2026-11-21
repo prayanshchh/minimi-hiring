@@ -1,18 +1,20 @@
 # Design
 
-This is a chat agent with web search that remembers every past conversation. It's built for questions like *"Last Tuesday I asked you about Postgres hosting. Has the pricing changed since?"*. The agent has to find that exact conversation, know what was said, check the web today, and say what changed.
+This is a chat agent with web search that remembers every past conversation. 
 
 The design rests on one idea: **the agent works from memories, and reads the original conversation only when it needs to.** A memory is a short, dated note of what *you* said: a fact about you, a decision, or a question you asked. Every memory points back to the exact conversation it came from. For most questions the memories are enough. When the agent needs what was actually said (its own answer, your exact words, the pages it cited back then), it reads that conversation with a tool. When it talks about the present, it searches the web again.
 
 ![Architecture](docs/architecture.png)
 
-Each message passes through the purple boxes in order, within a single request ([`src/turn.ts`](src/turn.ts)). The Memory writer works in the background, after the reply has gone out.
+Each message passes through the purple boxes in order, within a single request. The Memory writer works in the background, after it has replied to the user.
 
 Every language job runs on Anthropic's Claude models, and `.env.example` lists only those. Two models share the work:
-- **Claude Sonnet 5.5 writes the answers**, thinking a little first about what to read, what to search and how then compares with now. Answering is the hardest job, and its prompt is small now that it reads memories rather than whole chats.
-- **Claude Haiku 5.5**, Anthropic's small, fast and cheap model, plans each message with thinking turned off so planning stays quick, and writes memories in the background, thinking a little first, since no one waits for it.
+- **Claude Sonnet 5.5 writes the answers** Answering is the hardest job, and it reads memories which the agent has learnt about you over time (past sessions).
+- **Claude Haiku 5.5**, Anthropic's small, fast and cheap model, it is used in two ways
+1) Planner - splits each message into separate questions and decides which ones need past chats or the web. It pulls out time phrases like "last Tuesday", which code turns into exact dates, and it marks broad questions ("what do you know about me?") that should get every memory. Thinking is turned off, so planning stays quick.
+2) Memory Writer - after the reply has gone out, writes down what you said in that message: facts about you, decisions you made, and what you asked, each dated and checked against your own words. It thinks a little first, and since it runs in the background, no one waits for it.
 
-Anthropic has no embedding model, so search vectors come from EmbeddingGemma, Google's open embedding model, running inside the Node process: no API key, no quota, and nothing leaves the machine. It downloads once on first run.
+Search vectors come from EmbeddingGemma, Google's open embedding model, running inside the Node process. It downloads once on first run.
 
 Each model can be swapped for another Claude model in `.env`, and a backup Claude model can be set behind answering, planning and memory writing. If a model fails or is too busy to reply, that call is retried on the backup.
 
@@ -23,20 +25,14 @@ Each model can be swapped for another Claude model in `.env`, and a backup Claud
 
 **Input:** whatever the user types, plus the browser's timezone.
 
-**How it works:** a plain web page served by a small Node server. When you send a message, the server first saves it to the **PGlite database**, so it's kept even if a later step fails. Then it runs the message through the pipeline and streams each step back as it happens:
-- "Searching your chats · Tue 17 Nov only", then "7 memories from 3 chats",
-- "Reading past chat: …" when the agent opens an old conversation,
-- "Read 5 results for …" for each web search,
-- then the answer, word by word.
-
-Citations become links. When the agent quotes something you said earlier, the quote shows who said it and when. A separate Memories page lists everything the **Memory writer** has saved for you.
+**How it works:** a plain web page served by a small Node server. When you send a message, the server first saves it to the **Database**, so it's kept even if a later step fails. Then it runs the message through the pipeline and streams each step back as it happens.
 
 **Output:** the message and timezone go to the **Planner**. On screen you see every step and the answer as the **Answerer** streams it.
 
 ### Planner
 [`src/planner.ts`](src/planner.ts) · [`src/timeResolver.ts`](src/timeResolver.ts)
 
-**Input:** the message and timezone from the **Chat UI**, plus the last few turns of the current chat, so a phrase like "those tools" can be resolved.
+**Input:** the message and timezone from the **Chat UI**, plus the last few turns of the current chat.
 
 **How it works:** a small, fast model reads the message and splits it into separate questions. "Did the CRM tools change pricing, and what did I ask about Postgres last Tuesday?" is two questions. For each question the model:
 - decides whether it needs past chats;
@@ -60,7 +56,7 @@ The model never works out dates itself. Code turns the time phrase into an exact
 1. **Filter by date.** The date window is a hard filter. If you said "last Tuesday", only Tuesday is searched, so a better-matching Wednesday chat can't slip in.
 2. **Search.** Inside the window, it searches both the original turns and the memories, by keyword and by meaning, then merges the two rankings. Searching the turns too means a question about what the agent said can still find the right chat, although memories hold only your words.
 3. **Apply a relevance bar.** A result must be close enough in meaning, or contain most of the keywords. Without that bar, the least-bad unrelated chat would always come back.
-4. **Collect the memories.** It takes the memories of the matching turns, plus the other memories from the same chats, since a decision often comes a message later. There is no cap: every chat above the bar counts, so a later correction ("swap Close for Salesforce") is never crowded out. Memories are small, and the Answerer can read them all.
+4. **Collect the memories.** It takes the memories of the matching turns, plus the other memories from the same chats, since a decision often comes a message later. Searching the chats is only a way to find the right turns: what goes on is always their memories, and a matching turn with no memory hands over nothing. There is no cap: every chat above the bar counts, so a later correction ("swap Close for Salesforce") is never crowded out. Memories are small, and the Answerer can read them all.
 
 Two cases are handled specially:
 - **Nothing on that date.** It says so, and offers the memories of the closest chat from another day, clearly marked as not the conversation you asked about.
@@ -82,7 +78,7 @@ When memories aren't enough, it reads the past itself, with two tools besides we
 - **Read past chats** returns the full conversations behind chosen memories: the agent's own answers and your exact words. It reads several at once if needed.
 - **Read past web results** returns what the agent found back then: its answer, and the passages it cited, word for word, with the page, when it was read and the search that found it.
 
-The tools only open conversations this message's search pointed at. Then the model searches the web through **Exa** where it needs today's facts. It can run several tool calls at once, and as many rounds as it needs; a high backstop only stops a model that keeps re-searching.
+The tools take only the memories the model was given, and open only the conversations those memories came from. Then the model searches the web through **Exa** where it needs today's facts. It can run several tool calls at once, and as many rounds as it needs; a high backstop only stops a model that keeps re-searching.
 
 For "has anything changed?", it lines up three things for each item:
 - what the page said back then (the saved result);
@@ -149,4 +145,3 @@ If the embedding model changes, everything stored is re-embedded once at startup
 - **A memory is your words, never the agent's.** If memories held the agent's suggestions, a proposal could resurface as a decision. Keeping them to what you said, checked against your own words, means the agent never confuses what it suggested with what you decided.
 - **A date is a filter, not a preference.** "Last Tuesday" has exactly one right answer. A soft hint would let a better-matching Wednesday chat win, and runs would disagree.
 - **Code finds; models talk.** Retrieval is plain code, so it's fast, repeatable and testable. The models plan and write. They never decide what was said.
-- **You see every step.** Checking five vendors' pricing takes a while. A live step list makes that wait read as progress, not a hang.
