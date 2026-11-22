@@ -1,10 +1,9 @@
-import fs from "node:fs";
 import { answer } from "../src/answerer";
 import { buildPrompt } from "../src/promptBuilder";
 import { openDb } from "../src/db";
 import { assertKeys } from "../src/env";
 import { completeExchange, sessionExchanges, startExchange } from "../src/exchangeStore";
-import { createEmbedder, modelName, toVector } from "../src/models";
+import { createEmbedder, toVector } from "../src/models";
 import { plan } from "../src/planner";
 import { retrieve, type RetrievalResult } from "../src/retriever";
 import { seedDatabase, type SeedTimeline } from "./scenarios";
@@ -15,7 +14,6 @@ import { seedDatabase, type SeedTimeline } from "./scenarios";
  * exchanges, which status. It also prints the Answerer's reply (real web search) for manual review.
  *   --no-answers   retrieval assertions only (fast, no Exa calls)
  *   --only=name    run one case
- *   --write        also write the pass/fail table into README.md (between the eval markers)
  */
 const args = process.argv.slice(2);
 const withAnswers = !args.includes("--no-answers");
@@ -128,7 +126,6 @@ if (Number.isFinite(sims.onTopicMin) && Number.isFinite(sims.offTopicMax)) {
       : "  Not separable by vector similarity alone here; the keyword-coverage path of the floor has to carry those cases.",
   );
 }
-if (args.includes("--write")) writeEvalSummary();
 await db.close();
 process.exit(summary.every((s) => s.ok) ? 0 : 1);
 
@@ -172,25 +169,6 @@ function check(e: Expect, results: RetrievalResult[]) {
     out.push({ label: "its memories reach the Answerer", ok: results.some((r) => r.memories.some((m) => m.exchangeId === ids.at(-1))) });
   }
   return out;
-}
-
-function writeEvalSummary() {
-  const file = new URL("../README.md", import.meta.url);
-  const doc = fs.readFileSync(file, "utf8");
-  if (!/<!-- eval:start -->[\s\S]*<!-- eval:end -->/.test(doc)) {
-    console.warn("README.md has no <!-- eval:start --> / <!-- eval:end --> markers; table not written.");
-    return;
-  }
-  const table = [
-    `Last run: ${now.toISOString().slice(0, 10)}, ${modelName("small")} planner, ${summary.filter((s) => s.ok).length}/${summary.length} retrieval cases passed.`,
-    "",
-    "| Case | Result | Failed checks |",
-    "|---|---|---|",
-    ...summary.map((s) => `| ${s.name} | ${s.ok ? "pass" : "**fail**"} | ${s.detail || ""} |`),
-  ].join("\n");
-  const updated = doc.replace(/<!-- eval:start -->[\s\S]*<!-- eval:end -->/, `<!-- eval:start -->\n${table}\n<!-- eval:end -->`);
-  fs.writeFileSync(file, updated);
-  console.log("README.md eval summary updated.");
 }
 
 function indent(s: string) {

@@ -94,3 +94,12 @@ Six tables:
 - **observations**: the page passages each reply cited, saved exactly as they read at the time. They're the "back then" in "has it changed since?".
 - **memories**: the Memory writer's notes, each pointing to the exchange it came from, with its own vector and keyword index.
 - **meta**: which embedding model made the stored vectors. Switch models and everything is re-embedded once at startup, since vectors from two models can't be compared.
+
+## What was rejected
+
+- **Sending the full chats those memories came from with every message.** Most questions need only the memories. The Answerer decides on its own when it needs more, and then opens the full chats behind the memories and the web results it found back then.
+
+## What will I add next
+
+- **Links between memories**, like Supermemory, which connects related memories into a graph. A decision could then point to the one it replaced.
+- **Updating and deleting memories**, so a wrong or outdated memory can be fixed or removed.
